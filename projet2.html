@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire de Budget</title>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: #ffffff;
+            width: 100%;
+            max-width: 450px;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        /* Panneau d'affichage du solde total */
+        .balance-container {
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            border-radius: 10px;
+        }
+
+        .balance-container h3 {
+            margin: 0;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.8;
+        }
+
+        .balance-container .total {
+            margin: 5px 0 0 0;
+            font-size: 2.2rem;
+            font-weight: bold;
+        }
+
+        /* Formulaire d'ajout */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: #27ae60;
+        }
+
+        /* Liste des transactions */
+        .history-title {
+            margin-top: 30px;
+            font-size: 1.1rem;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .transaction-list {
+            list-style-type: none;
+            padding: 0;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #fcfcfc;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border-left: 5px solid #ddd;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+
+        /* Bordure verte pour les revenus, rouge pour les dépenses */
+        .transaction-item.income {
+            border-left-color: #2ecc71;
+        }
+
+        .transaction-item.expense {
+            border-left-color: #e74c3c;
+        }
+
+        .delete-btn {
+            background-color: transparent;
+            color: #e74c3c;
+            border: none;
+            width: auto;
+            padding: 0 5px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .delete-btn:hover {
+            color: #c0392b;
+            background-color: transparent;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Mon Budget</h2>
+        
+        <div class="balance-container">
+            <h3>Solde Disponible</h3>
+            <p class="total" id="balance">0.00 €</p>
+        </div>
+
+        <form id="budgetForm">
+            <div class="form-group">
+                <label Jir="description">Description</label>
+                <input type="text" id="description" placeholder="Ex: Salaire, Course, Café..." required>
+            </div>
+            
+            <div class="form-group">
+                <label for="amount">Montant (€)</label>
+                <input type="number" id="amount" step="0.01" placeholder="Ex: 15.50" required>
+            </div>
+
+            <div class="form-group">
+                <label for="type">Type</label>
+                <select id="type">
+                    <option value="income">Revenu (+)</option>
+                    <option value="expense">Dépense (-)</option>
+                </select>
+            </div>
+
+            <button type="submit">Ajouter la transaction</button>
+        </form>
+
+        <h3 class="history-title">Historique</h3>
+        <ul id="transactionList" class="transaction-list">
+            </ul>
+    </div>
+
+    <script>
+        // Sélection des éléments du DOM
+        const budgetForm = document.getElementById('budgetForm');
+        const descriptionInput = document.getElementById('description');
+        const amountInput = document.getElementById('amount');
+        const typeSelect = document.getElementById('type');
+        const transactionList = document.getElementById('transactionList');
+        const balanceElement = document.getElementById('balance');
+
+        // Tableau pour stocker les transactions (l'état de notre application)
+        let transactions = [];
+
+        // Fonction pour calculer et mettre à jour le solde global
+        function updateBalance() {
+            let total = 0;
+            
+            transactions.forEach(transaction => {
+                if (transaction.type === 'income') {
+                    total += transaction.amount;
+                } else {
+                    total -= transaction.amount;
+                }
+            });
+
+            // Injection du total calculé dans le DOM avec deux décimales
+            balanceElement.textContent = `${total.toFixed(2)} €`;
+            
+            // Changement de couleur du panneau de solde si négatif
+            const container = document.querySelector('.balance-container');
+            if (total < 0) {
+                container.style.background = "linear-gradient(135deg, #721c24, #e74c3c)";
+            } else {
+                container.style.background = "linear-gradient(135deg, #2c3e50, #3498db)";
+            }
+        }
+
+        // Fonction pour générer le visuel de la liste à partir du tableau
+        function renderTransactions() {
+            // On vide d'abord la liste actuelle pour éviter les doublons
+            transactionList.innerHTML = '';
+
+            transactions.forEach(transaction => {
+                // Création de l'élément de liste <li>
+                const li = document.createElement('li');
+                li.classList.add('transaction-item', transaction.type);
+
+                // Détermination du signe (+ ou -)
+                const sign = transaction.type === 'income' ? '+' : '-';
+
+                // Remplissage du contenu HTML interne de la ligne
+                li.innerHTML = `
+                    <span>${transaction.description}</span>
+                    <span>
+                        <strong>${sign}${transaction.amount.toFixed(2)} €</strong>
+                        <button class="delete-btn" onclick="deleteTransaction(${transaction.id})">❌</button>
+                    </span>
+                `;
+
+                // Ajout du <li> dans le <ul> du DOM
+                transactionList.appendChild(li);
+            });
+        }
+
+        // Fonction pour ajouter une transaction lors de la soumission du formulaire
+        function addTransaction(e) {
+            e.preventDefault(); // Empêche la page de se recharger
+
+            // Création de l'objet de transaction
+            const newTransaction = {
+                id: Date.now(), // ID unique basé sur le timestamp
+                description: descriptionInput.value,
+                amount: parseFloat(amountInput.value),
+                type: typeSelect.value
+            };
+
+            // Ajout au tableau (état informatique)
+            transactions.push(newTransaction);
+
+            // Mises à jour visuelles (DOM)
+            renderTransactions();
+            updateBalance();
+
+            // Réinitialisation des champs du formulaire
+            budgetForm.reset();
+        }
+
+        // Fonction pour supprimer une transaction (liée au bouton ❌)
+        function deleteTransaction(id) {
+            // On filtre le tableau pour enlever l'élément qui correspond à l'ID
+            transactions = transactions.filter(transaction => transaction.id !== id);
+
+            // Mises à jour visuelles (DOM)
+            renderTransactions();
+            updateBalance();
+        }
+
+        // Écouteur d'événement sur la soumission du formulaire
+        budgetForm.addEventListener('submit', addTransaction);
+    </script>
+</body>
+</html>

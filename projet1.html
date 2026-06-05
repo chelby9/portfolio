@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu du Morpion (Tic-Tac-Toe)</title>
+    
+    <!-- ==================== STYLE (CSS) ==================== -->
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #222831;
+            color: #eceff1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+            color: #eeeeee;
+        }
+
+        .status {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            font-weight: bold;
+            color: #00adb5;
+        }
+
+        /* Grille de 3x3 pour le plateau de jeu */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 10px;
+        }
+
+        /* Style de chaque case */
+        .cell {
+            background-color: #393e46;
+            border: none;
+            border-radius: 10px;
+            font-size: 2.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .cell:hover {
+            background-color: #4f5660;
+        }
+
+        .cell:active {
+            transform: scale(0.95);
+        }
+
+        /* Couleurs différentes pour distinguer X et O */
+        .cell.x {
+            color: #ff2e63;
+        }
+
+        .cell.o {
+            color: #08d9d6;
+        }
+
+        /* Bouton de réinitialisation */
+        .btn-restart {
+            margin-top: 25px;
+            padding: 12px 24px;
+            font-size: 1rem;
+            background-color: #00adb5;
+            color: #eeeeee;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .btn-restart:hover {
+            background-color: #007c82;
+        }
+
+        .btn-restart:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==================== STRUCTURE (HTML) ==================== -->
+    <h1>Tic-Tac-Toe</h1>
+    <div class="status" id="status">Tour du joueur X</div>
+
+    <!-- Le plateau avec les 9 boutons représentants les cases -->
+    <div class="board" id="board">
+        <button class="cell" data-index="0"></button>
+        <button class="cell" data-index="1"></button>
+        <button class="cell" data-index="2"></button>
+        <button class="cell" data-index="3"></button>
+        <button class="cell" data-index="4"></button>
+        <button class="cell" data-index="5"></button>
+        <button class="cell" data-index="6"></button>
+        <button class="cell" data-index="7"></button>
+        <button class="cell" data-index="8"></button>
+    </div>
+
+    <button class="btn-restart" id="restartBtn">Recommencer</button>
+
+    <!-- ==================== LOGIQUE (JAVASCRIPT) ==================== -->
+    <script>
+        // Récupération des éléments du DOM
+        const cells = document.querySelectorAll('.cell');
+        const statusElement = document.getElementById('status');
+        const restartBtn = document.getElementById('restartBtn');
+
+        // Variables d'état du jeu
+        let currentPlayer = 'X';
+        let gameState = ["", "", "", "", "", "", "", "", ""];
+        let isGameActive = true;
+
+        // Les 8 combinaisons gagnantes possibles au Morpion
+        const winningConditions = [
+            [0, 1, 2], // Ligne 1
+            [3, 4, 5], // Ligne 2
+            [6, 7, 8], // Ligne 3
+            [0, 3, 6], // Colonne 1
+            [1, 4, 7], // Colonne 2
+            [2, 5, 8], // Colonne 3
+            [0, 4, 8], // Diagonale principale
+            [2, 4, 6]  // Diagonale secondaire
+        ];
+
+        // Gère le clic sur une case
+        function handleCellClick(e) {
+            const clickedCell = e.target;
+            const clickedCellIndex = parseInt(clickedCell.getAttribute('data-index'));
+
+            // On ignore le clic si la case est déjà prise ou si la partie est finie
+            if (gameState[clickedCellIndex] !== "" || !isGameActive) {
+                return;
+            }
+
+            // Met à jour la logique interne et l'affichage
+            gameState[clickedCellIndex] = currentPlayer;
+            clickedCell.textContent = currentPlayer;
+            clickedCell.classList.add(currentPlayer.toLowerCase());
+
+            // Vérifie l'état de la partie
+            checkResult();
+        }
+
+        // Vérifie s'il y a un gagnant ou un match nul
+        function checkResult() {
+            let roundWon = false;
+
+            // Analyse des combinaisons
+            for (let i = 0; i < winningConditions.length; i++) {
+                const winCondition = winningConditions[i];
+                let a = gameState[winCondition[0]];
+                let b = gameState[winCondition[1]];
+                let c = gameState[winCondition[2]];
+
+                if (a === '' || b === '' || c === '') {
+                    continue;
+                }
+                if (a === b && b === c) {
+                    roundWon = true;
+                    break;
+                }
+            }
+
+            // Cas de victoire
+            if (roundWon) {
+                statusElement.textContent = `Le joueur ${currentPlayer} a gagné ! 🎉`;
+                statusElement.style.color = "#28a745";
+                isGameActive = false;
+                return;
+            }
+
+            // Cas de match nul (le tableau ne contient plus de chaînes vides)
+            let roundDraw = !gameState.includes("");
+            if (roundDraw) {
+                statusElement.textContent = "Match nul ! 🤝";
+                statusElement.style.color = "#ffc107";
+                isGameActive = false;
+                return;
+            }
+
+            // Changement de joueur
+            currentPlayer = currentPlayer === "X" ? "O" : "X";
+            statusElement.textContent = `Tour du joueur ${currentPlayer}`;
+        }
+
+        // Réinitialise totalement la grille et les variables
+        function restartGame() {
+            currentPlayer = 'X';
+            gameState = ["", "", "", "", "", "", "", "", ""];
+            isGameActive = true;
+            statusElement.textContent = `Tour du joueur ${currentPlayer}`;
+            statusElement.style.color = "#00adb5";
+            
+            cells.forEach(cell => {
+                cell.textContent = "";
+                cell.className = "cell"; // Enlève les classes additionnelles .x et .o
+            });
+        }
+
+        // Ajout des écouteurs d'événements (DOM Events)
+        cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+        restartBtn.addEventListener('click', restartGame);
+    </script>
+</body>
+</html>
